@@ -5,6 +5,7 @@ import sys
 import getpass
 import os
 import re
+import urllib2
 try:
     import ConfigParser
 except ImportError:
@@ -48,23 +49,21 @@ def install_homebrew():
         print("You have homebrew!")
         return
 
-    print("I am going to try to install Homebrew.")
-    ruby = subprocess.Popen(
-        ['ruby'],
-        stdin = subprocess.PIPE,
+    print("I am going to try to install Homebrew. This can take some time "
+          "with no indication that things are still happening; please be "
+          "patient...")
+    try:
+        response = urllib2.urlopen('https://raw.githubusercontent.com/' +
+                                   'Homebrew/install/master/install')
+    except urllib2.HTTPError as e:
+        print("Oh no! There was an error fetching homebrew:")
+        print(e.getcode() + ' ' + e.msg)
+        sys.exit(1)
+
+    print "Downloaded the install script; running..."
+    subprocess.check_call(
+        ['ruby', '-e', response.read()],
     )
-    curl = subprocess.Popen(
-        [
-            'curl',
-            '-fsSL',
-            'https://raw.githubusercontent.com/Homebrew/install/master/install'
-        ],
-        stdout = ruby.stdin,
-    )
-    return_code = ruby.wait()
-    if return_code:
-        print("Installation of Homebrew failed (see the error above); aborting.")
-        sys.exit(return_code)
 
 def install_utils():
     print("I am going to install several command-line utilities.")
