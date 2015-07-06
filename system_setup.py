@@ -123,10 +123,9 @@ def prepare_editor():
         )
     else:
         # brew install atom (which creates a symlink itself)
-        # TODO: check return codes
-        subprocess.Popen(['brew', 'tap', 'Caskroom/cask']).wait()
-        subprocess.Popen(['brew', 'install', 'caskroom/cask/brew-cask']).wait()
-        subprocess.Popen(['brew', 'cask', 'install', 'atom']).wait()
+        subprocess.check_call(['brew', 'tap', 'Caskroom/cask'])
+        subprocess.check_call(['brew', 'install', 'caskroom/cask/brew-cask'])
+        subprocess.check_call(['brew', 'cask', 'install', 'atom'])
         return 'atom'
 
 
