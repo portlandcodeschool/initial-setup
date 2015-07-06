@@ -20,6 +20,8 @@ def sudo_password():
         SUDO_PASS = getpass.getpass("Please enter your system password: ")
     return SUDO_PASS
 
+# return whether a command is found in `which`. Note that it returns a simple
+# boolean, not the path to the command.
 def which(command):
     check = subprocess.Popen(
         ['which', command],
@@ -74,6 +76,8 @@ def install_utils():
         print("Homebrew failed (see the error above); aborting.")
         sys.exit(return_code)
 
+# locate is a handy utility for finding files, but by default it doesn't work
+# on OSX. This launchdaemon makes it available (eventually).
 def prepare_locate():
     print("I am going to set up the locate utility.")
     sudo_pass = sudo_password()
@@ -94,6 +98,8 @@ def prepare_home_bin():
     if not os.path.isdir(home_bin):
         os.mkdir(home_bin)
 
+# If there's already an editor installed, make sure it can be invoked from the
+# command line. If there isn't one installed, install Atom.
 def prepare_editor():
     prepare_home_bin()
 
@@ -130,6 +136,8 @@ def prepare_editor():
 
 
 def configure_git():
+    # .gitconfig is a standard INI file, which ConfigParser can handle. INI
+    # files have "sections" and "options," where options live inside sections.
     config_path = os.path.join(HOMEDIR, '.gitconfig')
     config = ConfigParser.SafeConfigParser()
     config.read(config_path) # proceeds happily on no-such-file, which is fine
@@ -190,9 +198,15 @@ def configure_bash(editor):
             bash_config += '\nexport PATH={0}:$PATH'.format(path)
 
     for (variable, value) in [
+                # use colored output in ls.
                 ('CLICOLOR', '1'),
+                # colors to use in ls. See http://ss64.com/bash/lsenv.html
                 ('LSCOLORS', 'ExFxCxDxBxegedabagacad'),
+                # Some programs will send long output to $PAGER rather than
+                # printing directly to the terminal.
                 ('PAGER', 'less'),
+                # Program to invoke when editing files. Used by git, among
+                # others.
                 ('EDITOR', '"{0} --wait"'.format(editor)),
             ]:
         if variable not in bash_config:
