@@ -4,6 +4,7 @@ import subprocess
 import sys
 import getpass
 import os
+import re
 try:
     import ConfigParser
 except ImportError:
@@ -97,8 +98,11 @@ def prepare_home_bin():
 def prepare_editor():
     prepare_home_bin()
 
-    if which('subl') or which('atom'):
-        return
+    if which('subl'):
+        return 'subl'
+
+    if which('atom'):
+        return 'atom'
 
     # make a subl link if Sublime exists
     for version in ['', ' 2', ' 3']:
@@ -110,7 +114,7 @@ def prepare_editor():
             )
             subprocess.Popen(['ln', '-s', 'sublime_path', ])
             print("I have created a subl command for you.")
-            return
+            return 'subl'
 
     # make an atom link if Atom exists
     if os.path.exists('/Applications/Atom.app'):
@@ -119,10 +123,12 @@ def prepare_editor():
             os.path.join(HOMEDIR, 'bin', 'atom')
         )
     else:
+        # brew install atom (which creates a symlink itself)
         # TODO: check return codes
         subprocess.Popen(['brew', 'tap', 'Caskroom/cask']).wait()
         subprocess.Popen(['brew', 'install', 'caskroom/cask/brew-cask']).wait()
         subprocess.Popen(['brew', 'cask', 'install', 'atom']).wait()
+        return 'atom'
 
 
 def configure_git():
@@ -163,21 +169,52 @@ def configure_git():
     finally:
         fh.close()
 
+def configure_bash(editor):
+    bash_profile = os.path.join(HOMEDIR, '.bash_profile')
+    if os.path.exists(bash_profile):
+        fh = open(bash_profile, 'r')
+        try:
+            bash_config = fh.read()
+        finally:
+            fh.close()
+    else:
+        bash_config = ''
 
-# bashrc:
-### export PS1="\[$(tput bold)\]\[$(tput setaf 5)\]\u\[$(tput sgr0)\]:\[$(tput bold)\]\[$(tput setaf 2)\]\h\[$(tput sgr0)\]:\[$(tput bold)\]\[$(tput setaf 4)\]\w\[$(tput sgr0)\]\n$ \[$(tput sgr0)\]"
-### export PATH="$HOME/bin:/usr/local/bin:/usr/local/sbin:$PATH"
-### export CLICOLOR=1
-### export LSCOLORS=ExFxCxDxBxegedabagacad
-### export PAGER="less"
-### export EDITOR=...
-##### need to figure out editor from before
+    if 'PS1=' not in bash_config:
+        bash_config += '\n'
+        bash_config += r'export PS1="\[$(tput bold)\]\[$(tput setaf 5)\]\u' +\
+                       r'\[$(tput sgr0)\]:\[$(tput bold)\]\[$(tput setaf ' + \
+                       r'2)\]\h\[$(tput sgr0)\]:\[$(tput bold)\]\[$(tput ' + \
+                       r'setaf 4)\]\w\[$(tput sgr0)\]\n$ \[$(tput sgr0)\]"'
+
+    for path in ['/usr/local/sbin', '/usr/local/bin', '$HOME/bin']:
+        if not re.search(r'PATH=.*{0}'.format(path), bash_config):
+            bash_config += '\nexport PATH={0}:$PATH'.format(path)
+
+    for (variable, value) in [
+                ('CLICOLOR', '1'),
+                ('LSCOLORS', 'ExFxCxDxBxegedabagacad'),
+                ('PAGER', 'less'),
+                ('EDITOR', '"{0} --wait"'.format(editor)),
+            ]:
+        if variable not in bash_config:
+            bash_config += '\nexport {0}={1}'.format(variable, value)
+
+    if not bash_config.endswith('\n'):
+        bash_config += '\n'
+
+    fh = open(bash_profile, 'w')
+    try:
+        fh.write(bash_config)
+    finally:
+        fh.close()
 
 if __name__ == '__main__':
     install_xcode_tools()
     install_homebrew()
     install_utils()
     prepare_locate()
-    prepare_editor()
+    editor = prepare_editor()
     configure_git()
+    configure_bash(editor)
 
