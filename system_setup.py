@@ -186,6 +186,10 @@ def configure_bash(editor):
     else:
         bash_config = ''
 
+    # Append to .bash_history instead of overwriting on every logout.
+    if 'histappend' not in bash_config:
+        bash_config += '\nshopt -s histappend'
+
     if 'PS1=' not in bash_config:
         bash_config += '\n'
         bash_config += r'export PS1="\[$(tput bold)\]\[$(tput setaf 5)\]\u' +\
@@ -208,9 +212,14 @@ def configure_bash(editor):
                 # Program to invoke when editing files. Used by git, among
                 # others.
                 ('EDITOR', '"{0} --wait"'.format(editor)),
+                # Number of lines of history to store in the current session.
+                ('HISTSIZE', '1000'),
+                # Number of lines of history to store in .bash_history.
+                ('HISTFILESIZE', '10000'),
             ]:
         if variable not in bash_config:
             bash_config += '\nexport {0}={1}'.format(variable, value)
+
 
     if not bash_config.endswith('\n'):
         bash_config += '\n'
